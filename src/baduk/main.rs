@@ -9,8 +9,8 @@ use std::io::{self, Write, stdout};
 
 use libgo::game::Game;
 use libgo::game::board::Board;
-use libgo::gtp;
 use libgo::gtp::command::Command;
+use libgo::gtp::engine::Engine;
 use liner::Context;
 use termion::clear;
 use termion::color::{self, AnsiValue};
@@ -28,7 +28,9 @@ fn reset_screen(stdout: &mut RawTerminal<io::StdoutLock>) {
 
 /// Run the engine in interactive mode.
 pub fn start_interactive_mode() {
-    let command_map = gtp::register_commands();
+    let mut gtp = Engine::new();
+    gtp.register_all_commands();
+
     let mut game = Game::new();
     let mut result_buffer = "\r\n Enter 'list_commands' for a full list of options.".to_owned();
     let mut prompt = Context::new();
@@ -57,8 +59,8 @@ pub fn start_interactive_mode() {
         if let Some(command) = Command::from_line(&line) {
             prompt.history.push(line.into()).unwrap();
 
-            let result = gtp::gtp_exec(&mut game, &command, &command_map);
-            result_buffer = gtp::command_result::display(command.id, result);
+            let response = gtp.exec(&mut game, &command);
+            result_buffer = response.to_string();
 
             if command.name == "quit" {
                 break;
